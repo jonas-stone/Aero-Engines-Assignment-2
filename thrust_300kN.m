@@ -15,7 +15,11 @@ moles_O2_stoich = 16.75;
 moles_N2_stoich = 16.75 * 3.76;
 mass_air_stoich = (moles_O2_stoich * 32) + (moles_N2_stoich * (14.01 * 2));
 
-FAR_stoich = mass_fuel_stoich / mass_air_stoich;
-FAR_actual = m_f ./ m_a; 
+FA_ratio_stoich = mass_fuel_stoich / mass_air_stoich;
+FA_ratio_actual = m_f / m_a; 
 
-phi = FAR_actual / FAR_stoich;
+phi = FA_ratio_actual / FA_ratio_stoich;
+
+% rich zone phi = 1.5
+phi_rich = 1.5; 
+m_a_rich = m_f / (FA_ratio_stoich * phi_rich); 
