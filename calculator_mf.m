@@ -33,3 +33,5 @@ for i = 1:length(thrust)
     fprintf('%.0f\t\t%.2f\t\t%.4f\t\t%.5f\t\t%.4f\n', ...
         thrust(i), m_a(i), m_f(i), FAR_actual(i), phi(i));
 end
+
+
