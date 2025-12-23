@@ -1,3 +1,5 @@
+clear all; close all; clc;
+
 thrust = 300;
 T3 = 830;
 P3 = 4300;
