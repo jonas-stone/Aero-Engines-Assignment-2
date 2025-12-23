@@ -1,84 +1,122 @@
 clear all; close all; clc;
 
-thrust = 300;
-T3 = 830;
-P3 = 4300;
-T4 = 1650;
-m_a = 98;
+thrust = 300;   % [kN]
+T3     = 830;   % [K]
+P3     = 4300;  % [kPa]
+T4     = 1650;  % [K]
+m_a    = 98;    % [kg/s]
 
+% Constants
 Cp_air = 1000;       
 Cp_gas = 1150;     
 LHV = 43.6 * 10^6;  
 
+% % % % % % % % % % % % % % Fuel massflow % % % % % % % % % % % % % % % % %
+
 m_f = m_a * (Cp_gas * T4 - Cp_air * T3) / (LHV - (Cp_gas * T4));
 
-mass_fuel_stoich = (11 * 12) + (23 * 1.008); 
-moles_O2_stoich = 16.75;
-moles_N2_stoich = 16.75 * 3.76;
-mass_air_stoich = (moles_O2_stoich * 32) + (moles_N2_stoich * (14.01 * 2));
+% % % % % % % % % % % % Equivalence Ratio % % % % % % % % % % % % % % % % %
+% Air is modelled as a mixture of ideal gases:
+% -> 79% in volume is N2
+% -> 21% in volume is O2
 
-FA_ratio_stoich = mass_fuel_stoich / mass_air_stoich;
-FA_ratio_actual = m_f / m_a; 
+% Air mass per a single fuel mole 
+moles_O2 = 16.75;
+moles_N2 = 16.75 * 3.7619;
+mass_air = (moles_O2 * 32) + (moles_N2 * (14.01 * 2));
 
-phi = FA_ratio_actual / FA_ratio_stoich;
+% Single fuel mole mass
+mass_fuel = (11 * 12) + (23 * 1.008); 
 
-% rich zone phi = 1.5
+% Stechiometric Fuel-to-Air ratio
+FA_ref = mass_fuel / mass_air;
+
+% Actual Fuel-to-Air ratio
+FA_actual = m_f ./ m_a; 
+
+% Equivalence ratio
+phi = FA_actual ./ FA_ref;
+
+% Single burner massflow
+m_a_burner = m_a / 16;
+m_f_burner = m_f /16;
+
+% % % % % % % % % % % % % % % % Rich Burn % % % % % % % % % % % % % % % % %
 phi_rich = 1.5; 
-FA_ratio_rich = phi_rich * FA_ratio_stoich;
-m_a_total_rich = m_f / FA_ratio_rich;
-% m_a_total_rich == 0.12 * m_a + X1 so ...
-X1 = m_a_total_rich - 0.12 * m_a;
+FA_rich  = phi_rich * FA_ref;
+m_a_rich = m_f_burner / FA_rich;
 
-% quench zone phi = 0.7
+% m_a_rich == 0.12 * m_a_burner + X1 so ...
+m1 = m_a_rich - 0.12 * m_a_burner;
+x1 = m1 / m_a_burner;
+
+% % % % % % % % % % % % % % % Quick Quench % % % % % % % % % % % % % % % % 
 phi_quench = 0.7; 
-FA_ratio_quench = phi_quench * FA_ratio_stoich;
-m_a_total_quench = m_f / FA_ratio_quench;
-X2 = m_a_total_quench - m_a_total_rich;
+FA_quench = phi_quench * FA_ref;
+m_a_quench = m_f_burner / FA_quench;
+m2 = m_a_quench - m_a_rich;
+x2 = m2 / m_a_burner;
 
+% % % % % % % % % % % % % % % % Lean Burn % % % % % % % % % % % % % % % % %
+m3 = m_a_burner - m_a_quench;
+x3 = m3 / m_a_burner;
+m_a_lean = m3 + m_a_quench;
 
-X3 = m_a - m_a_total_quench;
-m_a_total_lean = X3 + m_a_total_quench;
+FA_lean = m_f_burner / m_a_lean;
+phi_lean = FA_lean / FA_ref;
+
+% % % % % % % % % % % Adiabatic Flame Temperature % % % % % % % % % % % % %
+LHV_rich = 23.6 * 10^6; % LHV for phi > 1
+T_ad_rich = (m_a_rich * Cp_air * T3 + m_f * LHV_rich) / ((m_a_rich + m_f) * Cp_gas);
+
+T_ad_quench = (m_a_quench * Cp_air * T3 + m_f * LHV) / ((m_a_quench + m_f) * Cp_gas);
+
+T_ad_lean = (m_a_lean * Cp_air * T3 + m_f * LHV) / ((m_a_lean + m_f) * Cp_gas);
+
+% % % % % % % % % % % % % % % % % Volume % % % % % % % % % % % % % % % % %
+t_residence = 6e-3;
+rho = P3 * 10^3 / (287 * T4);
+Q = (m_a_burner + m_f_burner) / rho;
+V = Q * t_residence;
 
 % --- Print Results for Report ---
 fprintf('\n=================================================\n');
 fprintf('       AIRFLOW DISTRIBUTION REPORT (300 kN)\n');
 fprintf('=================================================\n');
 
-fprintf('Total Airflow (Wa):              %8.4f kg/s\n', m_a);
-fprintf('Total Fuel Flow (Wf):            %8.4f kg/s\n', m_f);
-fprintf('Stoichiometric F/A Ratio:        %8.4f\n', FA_ratio_stoich);
+fprintf('Total Airflow:\t\t\t%.2f kg/s\n', m_a);
+fprintf('Total Fuel Flow:\t\t%.2f kg/s\n', m_f);
+fprintf('Stoichiometric F/A Ratio:\t%.2f\n', FA_ref);
 fprintf('-------------------------------------------------\n');
 
 % 1. RICH ZONE (Target Phi = 1.5)
-fprintf('1. RICH ZONE SPLIT (Phi = 1.5)\n');
-fprintf('   Total Air Required:           %8.4f kg/s\n', m_a_total_rich);
-fprintf('   -> Snout Air (12%% fixed):     %8.4f kg/s\n', 0.12 * m_a);
-fprintf('   -> Rich Holes (X1):           %8.4f kg/s\n', X1);
+fprintf('1. RICH ZONE SPLIT\n');
+fprintf('Total Air Required:\t\t%.4f kg/s\n', m_a_rich);
+fprintf('  -> Phi:\t\t\t%.2f\n',phi_rich);
+fprintf('  -> Snout Air:\t\t\t12 %%\n');
+fprintf('  -> Rich Holes:\t\t%.1f %%\n', x1*100);
 fprintf('\n');
 
 % 2. QUENCH ZONE (Target Phi = 0.7)
-fprintf('2. QUENCH ZONE SPLIT (Target Phi = 0.7)\n');
-fprintf('   Total Air at Quench Point:    %8.4f kg/s\n', m_a_total_quench);
-fprintf('   -> Quench Holes (X2):         %8.4f kg/s  <-- (Added Air)\n');
+fprintf('2. QUENCH ZONE SPLIT\n');
+fprintf('Total Air Required:\t\t%.4f kg/s\n', m_a_quench);
+fprintf('  -> Phi:\t\t\t%.2f\n',phi_quench);
+fprintf('  -> Quench Holes:\t\t%.1f %%\n', x2*100);
 fprintf('\n');
 
 % 3. DILUTION ZONE
 fprintf('3. DILUTION ZONE SPLIT\n');
-fprintf('   -> Dilution Holes (X3/Rest):  %8.4f kg/s\n', X3);
-fprintf('-------------------------------------------------\n');
+fprintf('Total Air Required:\t\t%.4f kg/s\n', m_a_lean);
+fprintf('  -> Phi:\t\t\t%.2f\n',phi_lean);
+fprintf('  -> Lean Holes:\t\t%.1f %%\n', x3*100);
 
 % Verification
-sum_check = (0.12 * m_a) + X1 + X2 + X3;
-fprintf('Sum Check (Should equal Wa):     %8.4f kg/s\n', sum_check);
-fprintf('=================================================\n');
+sum_check = 16 * ((0.12 * m_a_burner) + m1 + m2 + m3);
+err = sum_check - m_a;
+if  err ~= 0 
+    error('Inconsistent diluition!');
+end
 
-
-LHV_rich = 23.6 * 10^6; % LHV for phi > 1
-T_ad_rich = (m_a_total_rich * Cp_air * T3 + m_f * LHV_rich) / ((m_a_total_rich + m_f) * Cp_gas);
-
-T_ad_quench = (m_a_total_quench * Cp_air * T3 + m_f * LHV) / ((m_a_total_quench + m_f) * Cp_gas);
-
-T_ad_lean = (m_a_total_lean * Cp_air * T3 + m_f * LHV) / ((m_a_total_lean + m_f) * Cp_gas);
 
 fprintf('\n=================================================\n');
 fprintf('   ADIABATIC FLAME TEMPERATURE REPORT\n');
@@ -107,3 +145,9 @@ fprintf('   Status: Diluted with remaining air\n');
 fprintf('   Adiabatic Flame Temp:         %8.2f K\n', T_ad_lean);
 fprintf('   (Compare to Actual T4:        %8.2f K)\n', T4);
 fprintf('=================================================\n');
+
+% Burner volume 
+fprintf('\n=================================================\n');
+fprintf('   BURNER VOLUME REPORT\n');
+fprintf('=================================================\n');
+fprintf('Burner volume: %8.1f l\n',V*1000);
