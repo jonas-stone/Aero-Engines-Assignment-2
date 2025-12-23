@@ -36,8 +36,8 @@ m_a_total_quench = m_f / FA_ratio_quench;
 X2 = m_a_total_quench - m_a_total_rich;
 
 
-rest_of_air = m_a - m_a_total_quench;
-
+X3 = m_a - m_a_total_quench;
+m_a_total_lean = X3 + m_a_total_quench;
 
 % --- Print Results for Report ---
 fprintf('\n=================================================\n');
@@ -64,10 +64,46 @@ fprintf('\n');
 
 % 3. DILUTION ZONE
 fprintf('3. DILUTION ZONE SPLIT\n');
-fprintf('   -> Dilution Holes (X3/Rest):  %8.4f kg/s\n', rest_of_air);
+fprintf('   -> Dilution Holes (X3/Rest):  %8.4f kg/s\n', X3);
 fprintf('-------------------------------------------------\n');
 
 % Verification
-sum_check = (0.12 * m_a) + X1 + X2 + rest_of_air;
+sum_check = (0.12 * m_a) + X1 + X2 + X3;
 fprintf('Sum Check (Should equal Wa):     %8.4f kg/s\n', sum_check);
+fprintf('=================================================\n');
+
+
+LHV_rich = 23.6 * 10^6; % LHV for phi > 1
+T_ad_rich = (m_a_total_rich * Cp_air * T3 + m_f * LHV_rich) / ((m_a_total_rich + m_f) * Cp_gas);
+
+T_ad_quench = (m_a_total_quench * Cp_air * T3 + m_f * LHV) / ((m_a_total_quench + m_f) * Cp_gas);
+
+T_ad_lean = (m_a_total_lean * Cp_air * T3 + m_f * LHV) / ((m_a_total_lean + m_f) * Cp_gas);
+
+fprintf('\n=================================================\n');
+fprintf('   ADIABATIC FLAME TEMPERATURE REPORT\n');
+fprintf('=================================================\n');
+fprintf('Reference Conditions:\n');
+fprintf('   Inlet Temp (T3):              %8.2f K\n', T3);
+fprintf('   Standard LHV (Complete):      %8.2f MJ/kg\n', LHV/1e6);
+fprintf('   Rich LHV (Incomplete):        %8.2f MJ/kg\n', LHV_rich/1e6);
+fprintf('-------------------------------------------------\n');
+
+% 1. RICH ZONE
+fprintf('1. RICH ZONE (Phi=1.5)\n');
+fprintf('   Status: Incomplete Combustion (CO produced)\n');
+fprintf('   Adiabatic Flame Temp:         %8.2f K\n', T_ad_rich);
+fprintf('\n');
+
+% 2. QUENCH ZONE
+fprintf('2. QUENCH ZONE (Phi=0.7)\n');
+fprintf('   Status: Complete Combustion (CO -> CO2)\n');
+fprintf('   Adiabatic Flame Temp:         %8.2f K\n', T_ad_quench);
+fprintf('\n');
+
+% 3. LEAN / EXIT ZONE
+fprintf('3. DILUTION / EXIT ZONE (Overall)\n');
+fprintf('   Status: Diluted with remaining air\n');
+fprintf('   Adiabatic Flame Temp:         %8.2f K\n', T_ad_lean);
+fprintf('   (Compare to Actual T4:        %8.2f K)\n', T4);
 fprintf('=================================================\n');
