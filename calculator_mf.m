@@ -6,6 +6,7 @@ T3     = [480; 580;  660;  760;  830];  % [K]
 P3     = [650; 1000; 1750; 3000; 4300]; % [kPa]
 T4     = [960; 1050; 1225; 1450; 1650]; % [K]
 m_a    = [20;  29;   47;   76;   98];   % [kg/s]
+m_a_burner = m_a / 18;
 
 % Constants
 Cp_air = 1000;      % [J/kg K]  
@@ -17,6 +18,7 @@ LHV = 43.6 * 10^6;  % [J/kg]
 % % % % % % % % % % % % % % Fuel massflow % % % % % % % % % % % % % % % % %
 
 m_f = m_a .* (Cp_gas .* T4 - Cp_air .* T3) ./ (LHV - (Cp_gas .* T4));
+m_f_burner = m_f / 18;
 
 % % % % % % % % % % % % Equivalence Ratio % % % % % % % % % % % % % % % % %
 % Air is modelled as a mixture of ideal gases:
@@ -43,13 +45,21 @@ phi = FA_actual ./ FA_ref;
 % NOTE: following the proposed definition Phi > 1 is fuel rich mixture, Phi < 1 is
 % oxydizer rich mixture
 
+t_residence = 6e-3;
+rho = P3' * 10^3 ./ (287 * T4');
+Q_burner = (m_a_burner + m_f_burner) ./ rho';
+V_burner = Q_burner * t_residence;
+
+% % % % % % % % % % % % % % % Heat Density % % % % % % % % % % % % % % % %
+heat_density = m_f_burner .* LHV ./ 1e6 ./ V_burner;
+
 % --- Results ---
-fprintf('\nThrust(kN)\tAirFlow(kg/s)\tFuelFlow(kg/s)\tFAR_actual\tPhi\n');
-fprintf('--------------------------------------------------------------------------\n');
+fprintf('\nThrust(kN)\tAirFlow(kg/s)\tFuelFlow(kg/s)\tFAR_actual\tPhi\tHeat density(MW/m^3)\n');
+fprintf('----------------------------------------------------------------------------------\n');
 
 for i = 1:length(thrust)
-    fprintf('%.0f\t\t%.2f\t\t%.4f\t\t%.5f\t\t%.4f\n', ...
-        thrust(i), m_a(i), m_f(i), FAR_actual(i), phi(i));
+    fprintf('%.0f\t\t%.2f\t\t%.4f\t\t%.5f\t\t%.4f\t\t%.4f\n', ...
+        thrust(i), m_a(i), m_f(i), FA_actual(i), phi(i), heat_density(i));
 end
 
 

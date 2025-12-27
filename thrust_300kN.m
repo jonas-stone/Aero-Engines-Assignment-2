@@ -38,8 +38,9 @@ FA_actual = m_f ./ m_a;
 phi = FA_actual ./ FA_ref;
 
 % Single burner massflow
-m_a_burner = m_a / 16;
-m_f_burner = m_f /16;
+n_burner = 18;
+m_a_burner = m_a / n_burner;
+m_f_burner = m_f / n_burner;
 
 % % % % % % % % % % % % % % % % Rich Burn % % % % % % % % % % % % % % % % %
 phi_rich = 1.5; 
@@ -67,17 +68,20 @@ phi_lean = FA_lean / FA_ref;
 
 % % % % % % % % % % % Adiabatic Flame Temperature % % % % % % % % % % % % %
 LHV_rich = 23.6 * 10^6; % LHV for phi > 1
-T_ad_rich = (m_a_rich * Cp_air * T3 + m_f * LHV_rich) / ((m_a_rich + m_f) * Cp_gas);
+T_ad_rich = (m_a_rich * Cp_air * T3 + m_f_burner * LHV_rich) / ((m_a_rich + m_f_burner) * Cp_gas);
 
-T_ad_quench = (m_a_quench * Cp_air * T3 + m_f * LHV) / ((m_a_quench + m_f) * Cp_gas);
+T_ad_quench = (m_a_quench * Cp_air * T3 + m_f_burner * LHV) / ((m_a_quench + m_f_burner) * Cp_gas);
 
-T_ad_lean = (m_a_lean * Cp_air * T3 + m_f * LHV) / ((m_a_lean + m_f) * Cp_gas);
+T_ad_lean = (m_a_lean * Cp_air * T3 + m_f_burner * LHV) / ((m_a_lean + m_f_burner) * Cp_gas);
 
 % % % % % % % % % % % % % % % % % Volume % % % % % % % % % % % % % % % % %
 t_residence = 6e-3;
 rho = P3 * 10^3 / (287 * T4);
-Q = (m_a_burner + m_f_burner) / rho;
-V = Q * t_residence;
+Q_burner = (m_a_burner + m_f_burner) / rho;
+V_burner = Q_burner * t_residence;
+
+% % % % % % % % % % % % % % % Heat Density % % % % % % % % % % % % % % % %
+heat_density = m_f_burner * LHV / 1e6 / V_burner;
 
 % --- Print Results for Report ---
 fprintf('\n=================================================\n');
@@ -111,7 +115,7 @@ fprintf('  -> Phi:\t\t\t%.2f\n',phi_lean);
 fprintf('  -> Lean Holes:\t\t%.1f %%\n', x3*100);
 
 % Verification
-sum_check = 16 * ((0.12 * m_a_burner) + m1 + m2 + m3);
+sum_check = n_burner * ((0.12 * m_a_burner) + m1 + m2 + m3);
 err = sum_check - m_a;
 if  err ~= 0 
     error('Inconsistent diluition!');
@@ -150,4 +154,10 @@ fprintf('=================================================\n');
 fprintf('\n=================================================\n');
 fprintf('   BURNER VOLUME REPORT\n');
 fprintf('=================================================\n');
-fprintf('Burner volume: %8.1f l\n',V*1000);
+fprintf('Burner volume:\t\t\t%8.1f l\n',V_burner*1000);
+
+% Heat density
+fprintf('\n=================================================\n');
+fprintf('   HEAT DENSITY REPORT\n');
+fprintf('=================================================\n');
+fprintf('Heat density:\t\t\t%8.1f MW/m^3\n',heat_density);
