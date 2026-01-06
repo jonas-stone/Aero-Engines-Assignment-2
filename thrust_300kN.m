@@ -47,7 +47,6 @@ phi_rich = 1.5;
 FA_rich  = phi_rich * FA_ref;
 m_a_rich = m_f_burner / FA_rich;
 
-% m_a_rich == 0.12 * m_a_burner + X1 so ...
 m1 = m_a_rich - 0.12 * m_a_burner;
 x1 = m1 / m_a_burner;
 
@@ -76,9 +75,26 @@ T_ad_lean = (m_a_lean * Cp_air * T3 + m_f_burner * LHV) / ((m_a_lean + m_f_burne
 
 % % % % % % % % % % % % % % % % % Volume % % % % % % % % % % % % % % % % %
 t_residence = 6e-3;
-rho = P3 * 10^3 / (287 * T4);
-Q_burner = (m_a_burner + m_f_burner) / rho;
-V_burner = Q_burner * t_residence;
+
+% Assumption: rich = 30%, quench = 15% and lean = 55%
+t_rich   = t_residence * 0.3;
+t_quench = t_residence * 0.15;
+t_lean   = t_residence * 0.55;
+
+R = 287;
+P = P3 * 10^3;
+
+% Rich Zone
+Q_rich = (m_a_rich + m_f_burner) * R * T_ad_rich / P;
+
+% Quench Zone
+Q_quench = (m_a_quench + m_f_burner) * R * T_ad_quench / P;
+
+% Lean Zone
+Q_lean = (m_a_lean + m_f_burner) * R * T_ad_lean / P;
+
+% Overall
+V_burner = t_rich * Q_rich + t_quench * Q_quench + t_lean * Q_lean;
 
 % % % % % % % % % % % % % % % Heat Density % % % % % % % % % % % % % % % %
 heat_density = m_f_burner * LHV / 1e6 / V_burner;
@@ -148,13 +164,12 @@ fprintf('3. DILUTION / EXIT ZONE (Overall)\n');
 fprintf('   Status: Diluted with remaining air\n');
 fprintf('   Adiabatic Flame Temp:         %8.2f K\n', T_ad_lean);
 fprintf('   (Compare to Actual T4:        %8.2f K)\n', T4);
-fprintf('=================================================\n');
 
 % Burner volume 
 fprintf('\n=================================================\n');
 fprintf('   BURNER VOLUME REPORT\n');
 fprintf('=================================================\n');
-fprintf('Burner volume:\t\t\t%8.1f l\n',V_burner*1000);
+fprintf('Burner volume:\t\t\t%8.3f l\n',V_burner*1000);
 
 % Heat density
 fprintf('\n=================================================\n');

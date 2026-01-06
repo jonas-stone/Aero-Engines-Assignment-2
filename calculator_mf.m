@@ -45,10 +45,7 @@ phi = FA_actual ./ FA_ref;
 % NOTE: following the proposed definition Phi > 1 is fuel rich mixture, Phi < 1 is
 % oxydizer rich mixture
 
-t_residence = 6e-3;
-rho = P3' * 10^3 ./ (287 * T4');
-Q_burner = (m_a_burner + m_f_burner) ./ rho';
-V_burner = Q_burner * t_residence;
+V_burner = 2.938 * 1e-3;
 
 % % % % % % % % % % % % % % % Heat Density % % % % % % % % % % % % % % % %
 heat_density = m_f_burner .* LHV ./ 1e6 ./ V_burner;
